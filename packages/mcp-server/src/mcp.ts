@@ -14,6 +14,11 @@ type Content = { type: "text"; text: string } | { type: "image"; data: string; m
 declare const __UBC_VERSION__: string | undefined;
 const VERSION = typeof __UBC_VERSION__ === "string" ? __UBC_VERSION__ : "0.0.0-dev";
 
+const INSTRUCTIONS =
+  "These tools control the user's real browser. A tab you work on shows the user an indicator that it is being controlled. " +
+  "When you have finished working with a tab, call release_tab for it before you give your final answer, so the indicator goes away. " +
+  "If a tool reports that the user stopped control of a tab, leave that tab alone and tell the user.";
+
 const browserParam = {
   browser: z.string().optional().describe("Browser id or name from browser_list. Only needed when several browsers are connected."),
 };
@@ -49,7 +54,7 @@ export function toContent(result: unknown, params: Params): Content[] {
 }
 
 export function createMcpServer(bridge: Bridge): Server {
-  const server = new Server({ name: "universal-browser-control", version: VERSION }, { capabilities: { tools: {} } });
+  const server = new Server({ name: "universal-browser-control", version: VERSION }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
   const byName = new Map(TOOLS.map((tool) => [tool.name, tool]));
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({

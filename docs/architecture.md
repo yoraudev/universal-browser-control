@@ -24,6 +24,8 @@ Adding a tool means adding its definition to `tools.ts` and a handler with the s
 
 ## MCP server
 
+The `initialize` response carries server instructions (`mcp.ts`) that tell the model to call `release_tab` when it has finished with a tab and to leave a tab alone once the user has stopped control of it. Clients that load tools on demand still pass these to the model.
+
 ### Hub and relay
 
 Each MCP client starts its own server process, but the extension connects to one port. `Bridge` (`bridge.ts`) resolves this:

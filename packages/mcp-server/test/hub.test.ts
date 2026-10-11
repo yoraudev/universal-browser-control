@@ -100,6 +100,32 @@ describe("hub", () => {
     await fakeExtension(p, "b9");
     expect(await second.call("tabs_list", {})).toMatchObject({ via: "b9" });
   });
+
+  it("tells the extension which clients are present", async () => {
+    const p = port++;
+    const home = mkdtempSync(join(tmpdir(), "ubc-"));
+    const first = makeBridge(home, p);
+    const second = makeBridge(home, p);
+    await first.ensure();
+    const announced: string[][] = [];
+    const extension = new WebSocket(`ws://127.0.0.1:${p}${EXTENSION_PATH}`, { origin: "chrome-extension://abcdefgh" });
+    cleanups.push(() => extension.terminate());
+    extension.on("message", (data) => {
+      const msg = JSON.parse(data.toString());
+      if (msg.type === "clients") announced.push(msg.ids);
+    });
+    await new Promise((resolve) => extension.on("open", resolve));
+    extension.send(JSON.stringify({ type: "hello", info: { id: "b1", name: "Chrome", version: "1", extensionVersion: "0.1.0" } }));
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 150));
+    await settle();
+    await second.ensure();
+    await settle();
+    second.close();
+    await settle();
+    expect(announced.map((ids) => ids.length)).toEqual([1, 2, 1]);
+    expect(announced[1][0]).toBe(announced[0][0]);
+    expect(announced[2]).toEqual(announced[0]);
+  });
 });
 
 describe("toContent", () => {

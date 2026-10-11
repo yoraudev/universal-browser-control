@@ -16,6 +16,7 @@ export interface DialogInfo {
 export interface TabState {
   tabId: number;
   controller?: string;
+  clientId?: string;
   idle: boolean;
   idleTimer?: ReturnType<typeof setTimeout>;
   ready: Promise<void>;
@@ -145,9 +146,10 @@ function armIdleTimer(state: TabState): void {
   }, IDLE_MS);
 }
 
-export function markActive(state: TabState, controller: string): void {
+export function markActive(state: TabState, controller: string, clientId?: string): void {
   const changed = state.idle || state.controller !== controller;
   state.controller = controller;
+  state.clientId = clientId;
   state.idle = false;
   armIdleTimer(state);
   if (changed) void showIndicator(state.tabId, controller);
@@ -171,6 +173,11 @@ export async function detach(tabId: number): Promise<void> {
   forget(tabId);
   await chrome.debugger.detach({ tabId }).catch(() => {});
   await hideIndicator(tabId);
+}
+
+export async function detachDepartedClients(present: ReadonlySet<string>): Promise<void> {
+  const departed = [...states.values()].filter((state) => state.clientId !== undefined && !present.has(state.clientId));
+  await Promise.all(departed.map((state) => detach(state.tabId)));
 }
 
 export async function detachAll(): Promise<number[]> {

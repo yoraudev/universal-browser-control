@@ -401,7 +401,10 @@ try {
     await t("tab_close", { tab_ids: [idle.id] });
   });
 
+  let departingTabId;
   await check("a second MCP server process relays through the first, then takes over", async () => {
+    departingTabId = (await t("tab_open", { url: `${origin}/second?departing`, active: false })).value.id;
+    await t("page_snapshot", { tab_id: departingTabId });
     client2 = await mcpClient("e2e-2");
     assert.ok((await call(client2, "tabs_list")).value.some((tab) => tab.id === tabId));
     assert.match((await call(client2, "page_text", { tab_id: tabId })).value.text, /Second page/);
@@ -413,6 +416,15 @@ try {
       if (!tabs) await new Promise((r) => setTimeout(r, 500));
     }
     assert.ok(tabs?.some((tab) => tab.id === tabId), "extension did not reconnect to the new hub");
+  });
+
+  await check("tabs of a client that went away are released, others stay controlled", async () => {
+    const attached = async (id) => !!(await call(client2, "tabs_list")).value.find((tab) => tab.id === id)?.debugger_attached;
+    assert.ok(await until(async () => !(await attached(departingTabId)), 20000), "departed client's tab stayed attached");
+    assert.equal(await attached(tabId), true);
+    const target = await pageOf(`${origin}/second?departing`);
+    assert.equal(await indicatorShown(target), false);
+    await call(client2, "tab_close", { tab_ids: [departingTabId] });
   });
 
   await check("debugger_detach", async () => {

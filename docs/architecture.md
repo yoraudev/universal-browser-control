@@ -39,6 +39,8 @@ The hub exposes two WebSocket paths:
 | `/extension` | The browser extension | `Origin` starts with `chrome-extension://` (and matches `UBC_EXTENSION_IDS` if set) |
 | `/client` | Relay processes | No `Origin` header and a valid `x-ubc-token` header |
 
+Every server process has a random client id. A relay announces its id with a `hello` when it connects. The hub sends the extension a `clients` message listing the ids that are present (its own and those of its relays) when the extension connects and whenever a relay joins or leaves.
+
 Browsers always send `Origin` on WebSocket handshakes and cannot set custom headers, so web pages can reach neither path. The token is a random value in `~/.universal-browser-control/token`, created by the first process that needs it.
 
 ### Requests
@@ -47,7 +49,7 @@ A tool call becomes a `request` message with a numeric id; the extension answers
 
 If no browser is connected, the hub waits up to 8 seconds for one before failing. If several are connected, the call must name one with `browser` (id or part of the name).
 
-The server also passes the MCP client's name (from the `initialize` handshake) with every request. The extension uses it for the tab group title and the on-page indicator.
+The server also passes the MCP client's name (from the `initialize` handshake) and its client id with every request. The extension uses the name for the tab group title and the on-page indicator, and the id to know which client controls a tab.
 
 ### Results
 
@@ -59,9 +61,11 @@ Handlers return plain JSON, which the server serializes as text. For binary data
 
 `connection.ts` opens a WebSocket to `ws://127.0.0.1:<port>/extension` and sends a `hello` with the browser's id, name and version. A ping every 20 seconds keeps the Manifest V3 service worker alive. While the worker is alive, a closed socket is retried with backoff (1 to 10 seconds); a 30-second alarm covers the case where the worker has been suspended. Port, label and the on/off switch live in `chrome.storage.local`; changing any of them reconnects.
 
+Five seconds after a `clients` message or a lost connection, the extension detaches from the tabs whose client is no longer present, or from every tab if it is still disconnected. The delay covers a relay taking over as hub.
+
 ### Debugger sessions
 
-`cdp.ts` attaches `chrome.debugger` to a tab lazily, the first time a tool needs it, and keeps per-tab state: sessions, dialog, console and network buffers, event subscriptions and the controller name. Tools that only need `chrome.tabs` (listing, opening, closing, navigating) never attach.
+`cdp.ts` attaches `chrome.debugger` to a tab lazily, the first time a tool needs it, and keeps per-tab state: sessions, dialog, console and network buffers, event subscriptions, the controller name and the id of the client that last used the tab. Tools that only need `chrome.tabs` (listing, opening, closing, navigating) never attach.
 
 On attach it enables the Page, Runtime, Network, Log and DOM domains and turns on flat auto-attach, which gives every out-of-process iframe its own CDP session on the same connection. Each iframe session gets a short index used in refs.
 
@@ -106,5 +110,5 @@ Both packages are bundled with esbuild: the server into a single `dist/index.cjs
 
 ## Tests
 
-- `packages/*/test` holds unit tests (Vitest): hub routing, origin and token checks, relay takeover, snapshot rendering, indicator colors.
+- `packages/*/test` holds unit tests (Vitest): hub routing, origin and token checks, relay takeover, client announcements, snapshot rendering, indicator colors.
 - `e2e/run.mjs` starts Chrome for Testing with the built extension, connects a real MCP client to the built server, and exercises every tool group against local test pages.

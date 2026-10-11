@@ -1,6 +1,7 @@
+import { detachAll, detachDepartedClients } from "./cdp";
 import { DEFAULT_PORT, EXTENSION_PATH, type BrowserInfo, type ExtensionToHub, type HubToExtension, type Params } from "@ubc/shared/protocol";
 
-type RequestHandler = (method: string, params: Params, client?: string) => Promise<unknown>;
+type RequestHandler = (method: string, params: Params, client?: string, clientId?: string) => Promise<unknown>;
 
 export interface Settings {
   port: number;
@@ -11,6 +12,7 @@ export interface Settings {
 
 const PING_INTERVAL_MS = 20_000;
 const RECONNECT_ALARM = "ubc-reconnect";
+const CLIENT_GRACE_MS = 5000;
 
 let socket: WebSocket | undefined;
 let connected = false;
@@ -19,6 +21,8 @@ let pingTimer: ReturnType<typeof setInterval> | undefined;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let retryDelay = 1000;
 let generation = 0;
+let presentClients: Set<string> | undefined;
+let releaseTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const isConnected = () => connected;
 
@@ -55,7 +59,16 @@ function disconnect(): void {
   const old = socket;
   socket = undefined;
   connected = false;
+  presentClients = undefined;
   old?.close();
+}
+
+function scheduleRelease(): void {
+  clearTimeout(releaseTimer);
+  releaseTimer = setTimeout(() => {
+    if (!connected) void detachAll();
+    else if (presentClients) void detachDepartedClients(presentClients);
+  }, CLIENT_GRACE_MS);
 }
 
 export async function connect(): Promise<void> {
@@ -75,9 +88,14 @@ export async function connect(): Promise<void> {
   };
   ws.onmessage = async (event) => {
     const message = JSON.parse(event.data as string) as HubToExtension;
+    if (message.type === "clients") {
+      presentClients = new Set(message.ids);
+      scheduleRelease();
+      return;
+    }
     if (message.type !== "request") return;
     try {
-      send({ type: "response", id: message.id, result: (await handler(message.method, message.params, message.client)) ?? null });
+      send({ type: "response", id: message.id, result: (await handler(message.method, message.params, message.client, message.clientId)) ?? null });
     } catch (error) {
       send({ type: "response", id: message.id, error: error instanceof Error ? error.message : String(error) });
     }
@@ -85,6 +103,7 @@ export async function connect(): Promise<void> {
   ws.onclose = () => {
     if (socket !== ws) return;
     disconnect();
+    scheduleRelease();
     retryTimer = setTimeout(() => void connect(), retryDelay);
     retryDelay = Math.min(retryDelay * 2, 10_000);
   };
@@ -93,6 +112,7 @@ export async function connect(): Promise<void> {
 export async function reconnect(): Promise<void> {
   generation++;
   disconnect();
+  scheduleRelease();
   retryDelay = 1000;
   await connect();
 }

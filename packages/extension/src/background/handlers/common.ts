@@ -1,4 +1,4 @@
-import { CLIENT_PARAM, type Params } from "@ubc/shared/protocol";
+import { CLIENT_ID_PARAM, CLIENT_PARAM, type Params } from "@ubc/shared/protocol";
 import { attach, getState, markActive, send, type TabState } from "../cdp";
 import { controllerLabel } from "../indicator";
 import { sleep } from "../input";
@@ -23,7 +23,7 @@ export async function page(params: Params, options: { allowDialog?: boolean } = 
 }
 
 export function touch(state: TabState, params: Params): void {
-  markActive(state, controllerLabel(params[CLIENT_PARAM]));
+  markActive(state, controllerLabel(params[CLIENT_PARAM]), params[CLIENT_ID_PARAM]);
 }
 
 export function tabInfo(tab: chrome.tabs.Tab) {

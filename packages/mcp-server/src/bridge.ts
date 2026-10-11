@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -21,6 +21,7 @@ export class Bridge {
   private starting?: Promise<Backend>;
   private closed = false;
   private tokenFile: string;
+  private clientId = randomUUID();
 
   constructor(private options: BridgeOptions) {
     const home = options.home ?? join(homedir(), ".universal-browser-control");
@@ -38,7 +39,7 @@ export class Bridge {
   }
 
   async call(method: string, params: Params, options?: CallOptions): Promise<unknown> {
-    return (await this.ensure()).call(method, params, options);
+    return (await this.ensure()).call(method, params, { ...options, clientId: this.clientId });
   }
 
   close(): void {
@@ -51,14 +52,14 @@ export class Bridge {
     const { port, log } = this.options;
     for (let attempt = 0; attempt < 20 && !this.closed; attempt++) {
       try {
-        const hub = await Hub.start({ ...this.options, token: this.readOrCreateToken() });
+        const hub = await Hub.start({ ...this.options, token: this.readOrCreateToken(), clientId: this.clientId });
         log?.(`listening for the browser extension on 127.0.0.1:${port}`);
         return (this.backend = hub);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "EADDRINUSE") throw error;
       }
       try {
-        const relay = await Relay.connect(port, this.readOrCreateToken());
+        const relay = await Relay.connect(port, this.readOrCreateToken(), this.clientId);
         relay.onClose = () => {
           this.backend = undefined;
           if (!this.closed) setTimeout(() => this.ensure().catch(() => {}), Math.random() * 300);

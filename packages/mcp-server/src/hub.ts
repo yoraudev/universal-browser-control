@@ -7,7 +7,9 @@ import {
   TOKEN_HEADER,
   type BrowserInfo,
   type CallOptions,
+  type ClientToHub,
   type ExtensionToHub,
+  type HubToExtension,
   type Params,
   type RequestMessage,
   type ResponseMessage,
@@ -33,6 +35,7 @@ interface Pending {
 export interface HubOptions {
   port: number;
   token: string;
+  clientId: string;
   extensionIds?: string[];
   browserWaitMs?: number;
 }
@@ -44,6 +47,7 @@ export class Hub implements Backend {
   private browsers = new Map<string, { ws: WebSocket; info: BrowserInfo }>();
   private pending = new Map<number, Pending>();
   private browserWaiters = new Set<() => void>();
+  private relayClients = new Map<WebSocket, string>();
   private nextId = 1;
 
   private constructor(private options: HubOptions) {
@@ -79,7 +83,7 @@ export class Hub implements Backend {
 
   async call(method: string, params: Params, options: CallOptions = {}): Promise<unknown> {
     if (method === "browser_list") return this.listBrowsers();
-    const { timeoutMs = DEFAULT_TIMEOUT_MS, client } = options;
+    const { timeoutMs = DEFAULT_TIMEOUT_MS, client, clientId } = options;
     const target = await this.pickBrowser(options.browser);
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
@@ -88,7 +92,7 @@ export class Hub implements Backend {
         reject(new Error(`${method} timed out after ${timeoutMs}ms`));
       }, timeoutMs);
       this.pending.set(id, { resolve, reject, timer, browserId: target.info.id });
-      target.ws.send(JSON.stringify({ type: "request", id, method, params, client } satisfies RequestMessage));
+      target.ws.send(JSON.stringify({ type: "request", id, method, params, client, clientId } satisfies RequestMessage));
     });
   }
 
@@ -127,6 +131,7 @@ export class Hub implements Backend {
         browserId = msg.info.id;
         this.browsers.get(browserId)?.ws.terminate();
         this.browsers.set(browserId, { ws, info: msg.info });
+        this.announceClients(ws);
         for (const wake of this.browserWaiters) wake();
       } else if (msg.type === "response") {
         const pending = this.pending.get(msg.id);
@@ -147,22 +152,38 @@ export class Hub implements Backend {
 
   private onClient(ws: WebSocket): void {
     ws.on("message", (data) => {
-      let msg: RequestMessage;
+      let parsed: ClientToHub;
       try {
-        msg = JSON.parse(data.toString());
+        parsed = JSON.parse(data.toString());
       } catch {
         return;
       }
-      if (msg.type !== "request") return;
+      if (parsed.type === "hello") {
+        this.relayClients.set(ws, parsed.clientId);
+        this.announceClients();
+        return;
+      }
+      if (parsed.type !== "request") return;
+      const msg = parsed;
       const reply = (response: Omit<ResponseMessage, "type" | "id">) => {
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "response", id: msg.id, ...response }));
       };
-      this.call(msg.method, msg.params, { browser: msg.browser, timeoutMs: msg.timeoutMs, client: msg.client }).then(
+      this.call(msg.method, msg.params, { browser: msg.browser, timeoutMs: msg.timeoutMs, client: msg.client, clientId: msg.clientId }).then(
         (result) => reply({ result }),
         (error: Error) => reply({ error: error.message }),
       );
     });
+    ws.on("close", () => {
+      if (this.relayClients.delete(ws)) this.announceClients();
+    });
     ws.on("error", () => {});
+  }
+
+  private announceClients(only?: WebSocket): void {
+    const message = JSON.stringify({ type: "clients", ids: [this.options.clientId, ...this.relayClients.values()] } satisfies HubToExtension);
+    for (const ws of only ? [only] : [...this.browsers.values()].map((b) => b.ws)) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(message);
+    }
   }
 
   private failPending(match: (p: Pending) => boolean, reason: string): void {

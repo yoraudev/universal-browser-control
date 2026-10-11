@@ -20,15 +20,18 @@ export interface RequestMessage {
   browser?: string;
   timeoutMs?: number;
   client?: string;
+  clientId?: string;
 }
 
 export interface CallOptions {
   browser?: string;
   timeoutMs?: number;
   client?: string;
+  clientId?: string;
 }
 
 export const CLIENT_PARAM = "$client";
+export const CLIENT_ID_PARAM = "$clientId";
 
 export interface ResponseMessage {
   type: "response";
@@ -38,7 +41,8 @@ export interface ResponseMessage {
 }
 
 export type ExtensionToHub = { type: "hello"; info: BrowserInfo } | ResponseMessage | { type: "ping" };
-export type HubToExtension = RequestMessage | { type: "pong" };
+export type HubToExtension = RequestMessage | { type: "pong" } | { type: "clients"; ids: string[] };
+export type ClientToHub = RequestMessage | { type: "hello"; clientId: string };
 
 export interface RichResult {
   $rich: true;

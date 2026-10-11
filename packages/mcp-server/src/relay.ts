@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import { CLIENT_PATH, TOKEN_HEADER, type CallOptions, type Params, type RequestMessage, type ResponseMessage } from "@ubc/shared/protocol";
+import { CLIENT_PATH, TOKEN_HEADER, type CallOptions, type ClientToHub, type Params, type RequestMessage, type ResponseMessage } from "@ubc/shared/protocol";
 import { DEFAULT_TIMEOUT_MS, type Backend } from "./hub";
 
 export class Relay implements Backend {
@@ -29,7 +29,7 @@ export class Relay implements Backend {
     ws.on("error", () => {});
   }
 
-  static connect(port: number, token: string): Promise<Relay> {
+  static connect(port: number, token: string, clientId: string): Promise<Relay> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`ws://127.0.0.1:${port}${CLIENT_PATH}`, {
         headers: { [TOKEN_HEADER]: token },
@@ -37,6 +37,7 @@ export class Relay implements Backend {
       });
       ws.once("open", () => {
         ws.off("error", reject);
+        ws.send(JSON.stringify({ type: "hello", clientId } satisfies ClientToHub));
         resolve(new Relay(ws));
       });
       ws.once("error", reject);

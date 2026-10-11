@@ -1,6 +1,7 @@
 import { CLIENT_PARAM } from "@ubc/shared/protocol";
+import { getState } from "../cdp";
 import { controllerLabel, groupOpenedTab } from "../indicator";
-import { tabInfo, targetTabId, waitForLoad, type Handler } from "./common";
+import { tabInfo, targetTabId, touch, waitForLoad, type Handler } from "./common";
 
 function windowInfo(win: chrome.windows.Window) {
   return {
@@ -67,6 +68,8 @@ export const tabHandlers: Record<string, Handler> = {
 
   async tab_navigate(p) {
     const tabId = await targetTabId(p);
+    const state = getState(tabId);
+    if (state) touch(state, p);
     if (p.url) await chrome.tabs.update(tabId, { url: p.url });
     else if (p.action === "back") await chrome.tabs.goBack(tabId);
     else if (p.action === "forward") await chrome.tabs.goForward(tabId);

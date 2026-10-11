@@ -94,6 +94,8 @@ Viewport screenshots are captured without a clip, in device pixels, and scaled d
 
 `indicator.ts` injects an overlay into every controlled tab: an outline and a top-center label naming the controller. It is a `div` with a closed shadow root and inline `!important` styles so page CSS cannot affect it, it is `aria-hidden` so it stays out of snapshots, it is hidden while a screenshot is captured, and it counter-scales the tab's zoom. It is re-injected after navigation and removed when the debugger detaches.
 
+The overlay shows activity, not attachment. Every tool call on a tab restarts a 60-second timer; when it runs out and no request is in progress, the overlay is removed while the debugger stays attached, and the next tool call puts it back.
+
 Tabs opened through `tab_open` or `window_create` go into a tab group titled with the controller name. New groups get a random color from those that keep white text readable. The indicator takes its tab group's color and switches to dark text for light colors.
 
 ## Builds and releases

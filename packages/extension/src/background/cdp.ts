@@ -16,6 +16,8 @@ export interface DialogInfo {
 export interface TabState {
   tabId: number;
   controller?: string;
+  idle: boolean;
+  idleTimer?: ReturnType<typeof setTimeout>;
   ready: Promise<void>;
   sessions: Map<string, SessionInfo>;
   nextSessionIndex: number;
@@ -31,7 +33,9 @@ export interface TabState {
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_EVENTS = 500;
+const IDLE_MS = 60_000;
 const states = new Map<number, TabState>();
+let runningRequests = 0;
 
 export const getState = (tabId: number) => states.get(tabId);
 export const attachedTabs = () => [...states.keys()];
@@ -88,6 +92,7 @@ export async function attach(tabId: number): Promise<TabState> {
   }
   const state: TabState = {
     tabId,
+    idle: false,
     ready: Promise.resolve(),
     sessions: new Map(),
     nextSessionIndex: 1,
@@ -119,14 +124,51 @@ export async function attach(tabId: number): Promise<TabState> {
   try {
     await state.ready;
   } catch (error) {
-    states.delete(tabId);
+    forget(tabId);
     throw error;
   }
   return state;
 }
 
+function forget(tabId: number): boolean {
+  clearTimeout(states.get(tabId)?.idleTimer);
+  return states.delete(tabId);
+}
+
+function armIdleTimer(state: TabState): void {
+  clearTimeout(state.idleTimer);
+  state.idleTimer = setTimeout(() => {
+    if (states.get(state.tabId) !== state) return;
+    if (runningRequests > 0) return armIdleTimer(state);
+    state.idle = true;
+    void hideIndicator(state.tabId);
+  }, IDLE_MS);
+}
+
+export function markActive(state: TabState, controller: string): void {
+  const changed = state.idle || state.controller !== controller;
+  state.controller = controller;
+  state.idle = false;
+  armIdleTimer(state);
+  if (changed) void showIndicator(state.tabId, controller);
+}
+
+export async function whileRunning<T>(run: () => Promise<T>): Promise<T> {
+  runningRequests++;
+  try {
+    return await run();
+  } finally {
+    runningRequests--;
+  }
+}
+
+function refreshIndicator(tabId: number): void {
+  const state = states.get(tabId);
+  if (state?.controller && !state.idle) void showIndicator(tabId, state.controller);
+}
+
 export async function detach(tabId: number): Promise<void> {
-  states.delete(tabId);
+  forget(tabId);
   await chrome.debugger.detach({ tabId }).catch(() => {});
   await hideIndicator(tabId);
 }
@@ -188,24 +230,18 @@ chrome.debugger.onEvent.addListener((source, method, params: any) => {
 
 chrome.debugger.onDetach.addListener((source) => {
   if (source.tabId === undefined || (source as { sessionId?: string }).sessionId) return;
-  if (states.delete(source.tabId)) void hideIndicator(source.tabId);
+  if (forget(source.tabId)) void hideIndicator(source.tabId);
 });
 chrome.webNavigation.onCommitted.addListener((details) => {
-  const controller = details.frameId === 0 ? states.get(details.tabId)?.controller : undefined;
-  if (controller) void showIndicator(details.tabId, controller);
+  if (details.frameId === 0) refreshIndicator(details.tabId);
 });
-chrome.tabs.onZoomChange.addListener(({ tabId }) => {
-  const controller = states.get(tabId)?.controller;
-  if (controller) void showIndicator(tabId, controller);
-});
+chrome.tabs.onZoomChange.addListener(({ tabId }) => refreshIndicator(tabId));
 chrome.tabs.onUpdated.addListener((tabId, change) => {
-  const controller = change.groupId === undefined ? undefined : states.get(tabId)?.controller;
-  if (controller) void showIndicator(tabId, controller);
+  if (change.groupId !== undefined) refreshIndicator(tabId);
 });
 chrome.tabGroups?.onUpdated.addListener(async (group) => {
   for (const tab of await chrome.tabs.query({ groupId: group.id })) {
-    const controller = tab.id === undefined ? undefined : states.get(tab.id)?.controller;
-    if (controller) void showIndicator(tab.id!, controller);
+    if (tab.id !== undefined) refreshIndicator(tab.id);
   }
 });
-chrome.tabs.onRemoved.addListener((tabId) => states.delete(tabId));
+chrome.tabs.onRemoved.addListener((tabId) => void forget(tabId));

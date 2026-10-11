@@ -1,6 +1,6 @@
 import { CLIENT_PARAM, type Params } from "@ubc/shared/protocol";
-import { attach, getState, send, type TabState } from "../cdp";
-import { controllerLabel, showIndicator } from "../indicator";
+import { attach, getState, markActive, send, type TabState } from "../cdp";
+import { controllerLabel } from "../indicator";
 import { sleep } from "../input";
 
 export type Handler = (params: Params) => Promise<unknown>;
@@ -15,15 +15,15 @@ export async function targetTabId(params: Params): Promise<number> {
 
 export async function page(params: Params, options: { allowDialog?: boolean } = {}): Promise<TabState> {
   const state = await attach(await targetTabId(params));
-  const controller = controllerLabel(params[CLIENT_PARAM]);
-  if (state.controller !== controller) {
-    state.controller = controller;
-    void showIndicator(state.tabId, controller);
-  }
+  touch(state, params);
   if (state.dialog && !options.allowDialog) {
     throw new Error(`A JavaScript ${state.dialog.type} dialog is open ("${state.dialog.message}"). Call handle_dialog first.`);
   }
   return state;
+}
+
+export function touch(state: TabState, params: Params): void {
+  markActive(state, controllerLabel(params[CLIENT_PARAM]));
 }
 
 export function tabInfo(tab: chrome.tabs.Tab) {

@@ -53,7 +53,7 @@ The extension connects to the server on its own within about 30 seconds; clickin
 
 The tools cover tabs and windows, reading pages, interacting with them, DevTools access and browser data. All of them are listed with their parameters in [docs/tools.md](docs/tools.md).
 
-Tabs the model opens go into a tab group named after the MCP client, and every tab it controls shows a colored outline with a "This tab is being controlled by …" label.
+Tabs the model opens go into a tab group named after the MCP client, and every tab it controls shows a colored outline with a "This tab is being controlled by …" label. The outline goes away after a minute without commands and comes back with the next one.
 
 ## Settings
 

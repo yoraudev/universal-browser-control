@@ -1,5 +1,5 @@
 import { CLIENT_PARAM } from "@ubc/shared/protocol";
-import { attachedTabs, detachAll } from "./cdp";
+import { attachedTabs, detachAll, whileRunning } from "./cdp";
 import { connect, getSettings, isConnected, startConnection } from "./connection";
 import type { Handler } from "./handlers/common";
 import { dataHandlers } from "./handlers/data";
@@ -13,7 +13,7 @@ const handlers: Record<string, Handler> = { ...tabHandlers, ...pageHandlers, ...
 startConnection((method, params, client) => {
   const handler = handlers[method];
   if (!handler) throw new Error(`The extension does not implement "${method}"; it may be older than the MCP server.`);
-  return handler({ ...params, [CLIENT_PARAM]: client });
+  return whileRunning(() => handler({ ...params, [CLIENT_PARAM]: client }));
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, respond) => {

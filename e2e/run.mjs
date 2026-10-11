@@ -379,6 +379,28 @@ try {
     await t("tab_close", { tab_ids: [internal.id] });
   });
 
+  const pageOf = async (url) => (await browser.pages()).find((candidate) => candidate.url() === url);
+  const indicatorShown = (target) => target.evaluate(() => !!document.querySelector("[data-ubc-indicator]"));
+  const until = async (condition, timeoutMs) => {
+    for (const started = Date.now(); Date.now() - started < timeoutMs; await new Promise((r) => setTimeout(r, 250))) {
+      if (await condition()) return true;
+    }
+    return false;
+  };
+
+  await check("indicator goes away after a minute without commands and returns with the next one", async () => {
+    const url = `${origin}/second?idle`;
+    const idle = (await t("tab_open", { url })).value;
+    await t("page_snapshot", { tab_id: idle.id });
+    const target = await pageOf(url);
+    assert.ok(await until(() => indicatorShown(target), 5000), "indicator never appeared");
+    assert.ok(await until(async () => !(await indicatorShown(target)), 70000), "indicator stayed while idle");
+    assert.equal((await t("tabs_list")).value.find((tab) => tab.id === idle.id).debugger_attached, true);
+    await t("page_snapshot", { tab_id: idle.id });
+    assert.ok(await until(() => indicatorShown(target), 5000), "indicator did not return");
+    await t("tab_close", { tab_ids: [idle.id] });
+  });
+
   await check("a second MCP server process relays through the first, then takes over", async () => {
     client2 = await mcpClient("e2e-2");
     assert.ok((await call(client2, "tabs_list")).value.some((tab) => tab.id === tabId));

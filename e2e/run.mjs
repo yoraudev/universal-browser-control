@@ -464,8 +464,8 @@ try {
     await call(client2, "tab_close", { tab_ids: [departingTabId] });
   });
 
-  await check("debugger_detach", async () => {
-    assert.ok((await call(client2, "debugger_detach")).value.detached.includes(tabId));
+  await check("release_tab", async () => {
+    assert.ok((await call(client2, "release_tab")).value.released.includes(tabId));
     assert.ok(!(await call(client2, "tabs_list")).value.find((tab) => tab.id === tabId).debugger_attached);
     const page = (await browser.pages()).find((candidate) => candidate.url().startsWith(origin));
     assert.equal(await page.evaluate(() => !!document.querySelector("[data-ubc-indicator]")), false);

@@ -302,9 +302,14 @@ export const TOOLS: ToolDef[] = [
     clear: z.boolean().optional(),
     ...paging,
   }),
-  tool("debugger_detach", "extension", "Detach the debugger from a tab (or all tabs), removing the browser's debugging banner.", {
-    tab_id: z.number().int().optional().describe("Omit to detach from every tab"),
-  }),
+  tool(
+    "release_tab",
+    "extension",
+    "Stop controlling a tab (or every tab): detaches the debugger and removes the on-page control indicator and the browser's debugging bar. Call this as soon as you have finished working with a tab. The next tool call on the tab takes control of it again.",
+    {
+      tab_id: z.number().int().optional().describe("Omit to release every tab"),
+    },
+  ),
 
   tool("cookies", "extension", "Read, set or delete cookies.", {
     action: z.enum(["get", "set", "delete"]),

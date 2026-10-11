@@ -477,13 +477,13 @@ Subscribe to raw CDP events for the tab and read the ones buffered so far.
 | `max_chars` | integer |  | `30000` | Maximum characters to return |
 | `offset` | integer |  | `0` | Character offset, to page through long output |
 
-### `debugger_detach`
+### `release_tab`
 
-Detach the debugger from a tab (or all tabs), removing the browser's debugging banner.
+Stop controlling a tab (or every tab): detaches the debugger and removes the on-page control indicator and the browser's debugging bar. Call this as soon as you have finished working with a tab. The next tool call on the tab takes control of it again.
 
 | Parameter | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `tab_id` | integer |  |  | Omit to detach from every tab |
+| `tab_id` | integer |  |  | Omit to release every tab |
 
 ## Browser data
 

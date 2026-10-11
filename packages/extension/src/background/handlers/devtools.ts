@@ -235,9 +235,9 @@ export const devtoolsHandlers: Record<string, Handler> = {
     return paginateText(stringify({ tab_id: state.tabId, subscriptions: [...state.subscriptions], buffered, events }), p);
   },
 
-  async debugger_detach(p) {
-    if (p.tab_id === undefined) return { detached: await detachAll() };
+  async release_tab(p) {
+    if (p.tab_id === undefined) return { released: await detachAll() };
     await detach(p.tab_id);
-    return { detached: [p.tab_id] };
+    return { released: [p.tab_id] };
   },
 };

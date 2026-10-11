@@ -65,7 +65,7 @@ The label has a **Stop** button. It ends control of that tab at once and blocks 
 
 ## Good to know
 
-- While a tab is being controlled, the browser shows its "started debugging this browser" bar. The `debugger_detach` tool, the Stop button on the tab or the button in the popup ends it.
+- While a tab is being controlled, the browser shows its "started debugging this browser" bar. The `release_tab` tool, the Stop button on the tab or the button in the popup ends it.
 - Browser-internal pages (`chrome://`, the extension store, other extensions) cannot be controlled.
 - Incognito tabs need "Allow in Incognito" turned on in the extension's details page.
 

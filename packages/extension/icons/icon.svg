@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b404d"/>
+      <stop offset="0.55" stop-color="#1b1e27"/>
+      <stop offset="1" stop-color="#0a0b0f"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.38"/>
+      <stop offset="0.35" stop-color="#fff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.46" r="0.5">
+      <stop offset="0" stop-color="#4f8dff" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="#3b6cf0" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#3b6cf0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pane" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a4258"/>
+      <stop offset="1" stop-color="#1a1e2b"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#565f78"/>
+      <stop offset="1" stop-color="#3b4359"/>
+    </linearGradient>
+    <linearGradient id="paneRim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.45"/>
+      <stop offset="0.4" stop-color="#fff" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.03"/>
+    </linearGradient>
+    <linearGradient id="cursor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#c3d4f5"/>
+    </linearGradient>
+    <filter id="paneShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="cursorShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3.500" flood-color="#000" flood-opacity="0.65"/>
+    </filter>
+    <clipPath id="paneClip">
+      <rect x="21" y="25" width="86" height="62" rx="12"/>
+    </clipPath>
+  </defs>
+
+  <rect width="128" height="128" rx="29" fill="url(#bg)"/>
+  <rect width="128" height="128" rx="29" fill="url(#glow)"/>
+  <rect x="0.750" y="0.750" width="126.500" height="126.500" rx="28.250" fill="none" stroke="url(#rim)" stroke-width="1.500"/>
+
+  <g filter="url(#paneShadow)">
+    <rect x="21" y="25" width="86" height="62" rx="12" fill="url(#pane)"/>
+    <rect x="21" y="25" width="86" height="19" fill="url(#bar)" clip-path="url(#paneClip)"/>
+  </g>
+  <rect x="21.600" y="25.600" width="84.800" height="60.800" rx="11.400" fill="none" stroke="url(#paneRim)" stroke-width="1.200"/>
+  <circle cx="33" cy="34.500" r="3.400" fill="#ff5f57"/>
+  <circle cx="43.500" cy="34.500" r="3.400" fill="#febc2e"/>
+  <circle cx="54" cy="34.500" r="3.400" fill="#28c840"/>
+  <rect x="31" y="53" width="34" height="5" rx="2.500" fill="#fff" fill-opacity="0.16"/>
+  <rect x="31" y="64" width="22" height="5" rx="2.500" fill="#fff" fill-opacity="0.10"/>
+
+  <path d="M64 55v52l13-12 9 20.500 11.500-5-9-20h17.500z" fill="url(#cursor)" stroke="#0e1016" stroke-width="2.500" stroke-linejoin="round" filter="url(#cursorShadow)"/>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "name": "@ubc/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./protocol": "./src/protocol.ts",
+    "./tools": "./src/tools.ts"
+  },
+  "dependencies": { "zod": "^4.0.0" }
+}

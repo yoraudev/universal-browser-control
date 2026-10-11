@@ -1,0 +1,16 @@
+{
+  "name": "@ubc/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "universal-browser-control": "dist/index.cjs" },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@ubc/shared": "*",
+    "ws": "^8.18.0",
+    "zod": "^4.0.0"
+  }
+}

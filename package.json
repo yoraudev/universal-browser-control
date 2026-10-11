@@ -1,0 +1,26 @@
+{
+  "name": "universal-browser-control",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @ubc/mcp-server && npm run build -w @ubc/extension",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "test:e2e": "node e2e/run.mjs",
+    "docs:tools": "node scripts/generate-tools-doc.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.5",
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.2",
+    "esbuild": "^0.28.2",
+    "puppeteer": "^25.13.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

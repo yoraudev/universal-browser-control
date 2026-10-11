@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { width: 300px; margin: 0; padding: 14px; font: 13px/1.4 system-ui, sans-serif; color: #1f2328; }
+      h1 { font-size: 14px; margin: 0 0 10px; }
+      .status { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: #d1242f; }
+      .dot.on { background: #1a7f37; }
+      label { display: block; margin: 8px 0 2px; color: #59636e; }
+      input[type="text"], input[type="number"] { width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid #d1d9e0; border-radius: 6px; font: inherit; }
+      .row { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+      button { padding: 5px 10px; border: 1px solid #d1d9e0; border-radius: 6px; background: #f6f8fa; font: inherit; cursor: pointer; }
+      ul { margin: 4px 0 8px; padding-left: 18px; }
+      li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .muted { color: #59636e; }
+    </style>
+  </head>
+  <body>
+    <h1>Universal Browser Control</h1>
+    <div class="status"><span id="dot" class="dot"></span><span id="status">…</span></div>
+
+    <div class="row"><input id="enabled" type="checkbox" /><span>Allow MCP control of this browser</span></div>
+    <label for="port">MCP server port</label>
+    <input id="port" type="number" min="1" max="65535" />
+    <label for="label">Browser label (optional)</label>
+    <input id="label" type="text" placeholder="e.g. Work profile" />
+
+    <label>Tabs being debugged</label>
+    <ul id="tabs"></ul>
+    <button id="detach">Stop debugging all tabs</button>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

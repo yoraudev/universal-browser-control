@@ -1,7 +1,13 @@
 interface Status {
   connected: boolean;
   settings: { port: number; label: string; enabled: boolean; browserId: string };
-  attached: { id: number; title?: string }[];
+  attached: TabSummary[];
+  blocked: TabSummary[];
+}
+
+interface TabSummary {
+  id: number;
+  title?: string;
 }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -21,15 +27,20 @@ function render(status: Status, fillInputs: boolean): void {
     label.value = status.settings.label;
     enabled.checked = status.settings.enabled;
   }
-  const list = $("tabs");
+  renderTabs("tabs", status.attached);
+  renderTabs("blocked", status.blocked);
+}
+
+function renderTabs(listId: string, tabs: TabSummary[]): void {
+  const list = $(listId);
   list.replaceChildren(
-    ...status.attached.map((tab) => {
+    ...tabs.map((tab) => {
       const item = document.createElement("li");
       item.textContent = tab.title || `Tab ${tab.id}`;
       return item;
     }),
   );
-  if (!status.attached.length) {
+  if (!tabs.length) {
     const none = document.createElement("li");
     none.className = "muted";
     none.textContent = "None";
@@ -37,7 +48,7 @@ function render(status: Status, fillInputs: boolean): void {
   }
 }
 
-async function refresh(type: "status" | "connect" | "detachAll", fillInputs = false): Promise<void> {
+async function refresh(type: "status" | "connect" | "detachAll" | "unblockAll", fillInputs = false): Promise<void> {
   render(await chrome.runtime.sendMessage({ type }), fillInputs);
 }
 
@@ -48,6 +59,7 @@ port.addEventListener("change", () => {
 label.addEventListener("change", () => void chrome.storage.local.set({ label: label.value.trim() }));
 enabled.addEventListener("change", () => void chrome.storage.local.set({ enabled: enabled.checked }));
 $("detach").addEventListener("click", () => void refresh("detachAll"));
+$("unblock").addEventListener("click", () => void refresh("unblockAll"));
 
 void refresh("connect", true);
 setInterval(() => void refresh("status"), 1000);

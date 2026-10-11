@@ -100,6 +100,8 @@ Viewport screenshots are captured without a clip, in device pixels, and scaled d
 
 The overlay shows activity, not attachment. Every tool call on a tab restarts a 60-second timer; when it runs out and no request is in progress, the overlay is removed while the debugger stays attached, and the next tool call puts it back.
 
+The label carries a Stop button, the only part of the overlay that receives pointer events. A trusted click on it detaches the debugger and adds the tab to a block list (`blocked.ts`, kept in `chrome.storage.session`). Every tool that targets a blocked tab fails with a message telling the model to leave it alone, until the user presses "Allow control again" in the popup or closes the tab. A click that lands where the extension itself dispatched a mouse event within the last half second is ignored, so the model cannot press the button by accident.
+
 Tabs opened through `tab_open` or `window_create` go into a tab group titled with the controller name. New groups get a random color from those that keep white text readable. The indicator takes its tab group's color and switches to dark text for light colors.
 
 ## Builds and releases

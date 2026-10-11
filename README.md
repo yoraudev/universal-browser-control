@@ -55,6 +55,8 @@ The tools cover tabs and windows, reading pages, interacting with them, DevTools
 
 Tabs the model opens go into a tab group named after the MCP client, and every tab it controls shows a colored outline with a "This tab is being controlled by …" label. The outline goes away after a minute without commands and comes back with the next one, and a tab is released entirely when the MCP client that controlled it exits.
 
+The label has a **Stop** button. It ends control of that tab at once and blocks the model from it until you press "Allow control again" in the extension popup or close the tab.
+
 ## Settings
 
 - **Port:** 9234 by default. Change it with the `UBC_PORT` environment variable (or `--port`) on the server and in the extension popup; both must match.
@@ -63,7 +65,7 @@ Tabs the model opens go into a tab group named after the MCP client, and every t
 
 ## Good to know
 
-- While a tab is being controlled, the browser shows its "started debugging this browser" bar. The `debugger_detach` tool or the button in the popup ends it.
+- While a tab is being controlled, the browser shows its "started debugging this browser" bar. The `debugger_detach` tool, the Stop button on the tab or the button in the popup ends it.
 - Browser-internal pages (`chrome://`, the extension store, other extensions) cannot be controlled.
 - Incognito tabs need "Allow in Incognito" turned on in the extension's details page.
 

@@ -1,4 +1,5 @@
 import { CLIENT_PARAM } from "@ubc/shared/protocol";
+import { assertNotBlocked } from "../blocked";
 import { getState } from "../cdp";
 import { controllerLabel, groupOpenedTab } from "../indicator";
 import { tabInfo, targetTabId, touch, waitForLoad, type Handler } from "./common";
@@ -56,11 +57,13 @@ export const tabHandlers: Record<string, Handler> = {
   },
 
   async tab_close(p) {
+    for (const tabId of p.tab_ids) await assertNotBlocked(tabId);
     await chrome.tabs.remove(p.tab_ids);
     return { closed: p.tab_ids };
   },
 
   async tab_activate(p) {
+    await assertNotBlocked(p.tab_id);
     const tab = await chrome.tabs.update(p.tab_id, { active: true });
     if (tab?.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true });
     return tabInfo(await chrome.tabs.get(p.tab_id));
@@ -90,6 +93,7 @@ export const tabHandlers: Record<string, Handler> = {
     if (!chrome.tabGroups) throw new Error("This browser does not support tab groups.");
     const describe = (g: chrome.tabGroups.TabGroup) => ({ id: g.id, title: g.title, color: g.color, collapsed: g.collapsed, window_id: g.windowId });
     if (p.action === "list") return (await chrome.tabGroups.query({})).map(describe);
+    for (const tabId of p.tab_ids ?? []) await assertNotBlocked(tabId);
     if (p.action === "ungroup") {
       if (!p.tab_ids?.length) throw new Error("ungroup needs tab_ids.");
       await chrome.tabs.ungroup(p.tab_ids);

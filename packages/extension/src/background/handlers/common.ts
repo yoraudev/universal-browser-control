@@ -1,4 +1,5 @@
 import { CLIENT_ID_PARAM, CLIENT_PARAM, type Params } from "@ubc/shared/protocol";
+import { assertNotBlocked } from "../blocked";
 import { attach, getState, markActive, send, type TabState } from "../cdp";
 import { controllerLabel } from "../indicator";
 import { sleep } from "../input";
@@ -6,6 +7,12 @@ import { sleep } from "../input";
 export type Handler = (params: Params) => Promise<unknown>;
 
 export async function targetTabId(params: Params): Promise<number> {
+  const tabId = await requestedTabId(params);
+  await assertNotBlocked(tabId);
+  return tabId;
+}
+
+async function requestedTabId(params: Params): Promise<number> {
   if (typeof params.tab_id === "number") return params.tab_id;
   const [focused] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   const tab = focused ?? (await chrome.tabs.query({ active: true }))[0];

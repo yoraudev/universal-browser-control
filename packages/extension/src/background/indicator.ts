@@ -63,13 +63,26 @@ function mountIndicator(attribute: string, controller: string, zoom: number, bac
           .banner { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
             padding: 5px 14px 6px; border-radius: 0 0 10px 10px; background: var(--ubc-color); color: var(--ubc-text); white-space: nowrap;
             font: 500 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
+          .stop { all: unset; pointer-events: auto; cursor: pointer; padding: 0 9px; border-radius: 999px; font: inherit; font-weight: 600;
+            border: 1px solid color-mix(in srgb, var(--ubc-text) 60%, transparent); }
+          .stop:hover { background: var(--ubc-text); color: var(--ubc-color); }
           .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ubc-text); animation: pulse 1.2s ease-in-out infinite; }
           @keyframes pulse { 50% { opacity: 0.45; } }
           @media (prefers-reduced-motion: reduce) { .frame, .dot { animation: none; } }
         </style>
         <div class="frame"></div>
-        <div class="banner"><span class="dot"></span><span class="label"></span></div>`;
+        <div class="banner"><span class="dot"></span><span class="label"></span><button class="stop" title="Stop the agent and block it from this tab">Stop</button></div>`;
       host.ubcLabel = root.querySelector(".label") as HTMLElement;
+      const indicator = host;
+      root.querySelector(".stop")!.addEventListener("click", (event) => {
+        if (!event.isTrusted) return;
+        const { clientX: x, clientY: y } = event as MouseEvent;
+        try {
+          void chrome.runtime.sendMessage({ type: "stopControl", x, y });
+        } catch {
+          indicator.remove();
+        }
+      });
       document.documentElement.append(host);
     }
     host.style.setProperty("zoom", String(1 / zoom), "important");

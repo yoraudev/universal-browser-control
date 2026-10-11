@@ -1,3 +1,4 @@
+import { assertNotBlocked, blockTab } from "./blocked";
 import { hideIndicator, showIndicator } from "./indicator";
 import { recordEvent, type ConsoleEntry, type NetEntry } from "./recorders";
 
@@ -19,6 +20,7 @@ export interface TabState {
   clientId?: string;
   idle: boolean;
   idleTimer?: ReturnType<typeof setTimeout>;
+  lastMouse?: { x: number; y: number; at: number };
   ready: Promise<void>;
   sessions: Map<string, SessionInfo>;
   nextSessionIndex: number;
@@ -35,6 +37,8 @@ export interface TabState {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_EVENTS = 500;
 const IDLE_MS = 60_000;
+const MOUSE_ECHO_MS = 500;
+const MOUSE_ECHO_PX = 2;
 const states = new Map<number, TabState>();
 let runningRequests = 0;
 
@@ -57,6 +61,11 @@ export async function send<T = any>(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<T> {
   const target = (sessionId ? { tabId, sessionId } : { tabId }) as chrome.debugger.Debuggee;
+  const state = states.get(tabId);
+  if (state && method === "Input.dispatchMouseEvent") {
+    const { x, y } = params as { x: number; y: number };
+    state.lastMouse = { x, y, at: Date.now() };
+  }
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
@@ -86,6 +95,7 @@ async function initSession(tabId: number, sessionId?: string): Promise<void> {
 }
 
 export async function attach(tabId: number): Promise<TabState> {
+  await assertNotBlocked(tabId);
   const existing = states.get(tabId);
   if (existing) {
     await existing.ready;
@@ -178,6 +188,19 @@ export async function detach(tabId: number): Promise<void> {
 export async function detachDepartedClients(present: ReadonlySet<string>): Promise<void> {
   const departed = [...states.values()].filter((state) => state.clientId !== undefined && !present.has(state.clientId));
   await Promise.all(departed.map((state) => detach(state.tabId)));
+}
+
+export async function stopControl(tabId: number, click?: { x: number; y: number }): Promise<void> {
+  const mouse = states.get(tabId)?.lastMouse;
+  const echoesAgentClick =
+    !!mouse &&
+    !!click &&
+    Date.now() - mouse.at < MOUSE_ECHO_MS &&
+    Math.abs(mouse.x - click.x) <= MOUSE_ECHO_PX &&
+    Math.abs(mouse.y - click.y) <= MOUSE_ECHO_PX;
+  if (echoesAgentClick) return;
+  await blockTab(tabId);
+  await detach(tabId);
 }
 
 export async function detachAll(): Promise<number[]> {

@@ -387,6 +387,43 @@ try {
     }
     return false;
   };
+  const stopButton = (target) =>
+    target.evaluate(() => {
+      const host = document.querySelector("[data-ubc-indicator]");
+      const hits = [];
+      for (let x = 0; x < innerWidth; x += 2) if (document.elementFromPoint(x, 12) === host) hits.push(x);
+      return hits.length ? { x: (hits[0] + hits.at(-1)) / 2, y: 12 } : null;
+    });
+
+  await check("the Stop button blocks the tab until the user allows it again", async () => {
+    const url = `${origin}/second?stop`;
+    const stopped = (await t("tab_open", { url })).value;
+    await t("page_snapshot", { tab_id: stopped.id });
+    const target = await pageOf(url);
+    assert.ok(await until(() => stopButton(target), 5000), "no Stop button");
+    const button = await stopButton(target);
+
+    await t("click", { tab_id: stopped.id, x: button.x, y: button.y });
+    await new Promise((r) => setTimeout(r, 300));
+    await t("page_snapshot", { tab_id: stopped.id });
+
+    await new Promise((r) => setTimeout(r, 600));
+    await target.mouse.click(button.x, button.y);
+    assert.ok(await until(async () => !(await indicatorShown(target)), 5000), "indicator stayed after Stop");
+    await assert.rejects(t("page_snapshot", { tab_id: stopped.id }), /stopped control/);
+    await assert.rejects(t("tab_navigate", { tab_id: stopped.id, url: origin }), /stopped control/);
+    await assert.rejects(t("tab_close", { tab_ids: [stopped.id] }), /stopped control/);
+    assert.ok(!(await t("tabs_list")).value.find((tab) => tab.id === stopped.id).debugger_attached);
+
+    const popup = await browser.newPage();
+    await popup.goto(`chrome-extension://${new URL(workerTarget.url()).host}/popup.html`);
+    await popup.waitForFunction(() => document.querySelector("#blocked").textContent.includes("Second"));
+    await popup.click("#unblock");
+    await popup.waitForFunction(() => document.querySelector("#blocked").textContent.trim() === "None");
+    await popup.close();
+    assert.match((await t("page_snapshot", { tab_id: stopped.id })).text, /Second page/);
+    await t("tab_close", { tab_ids: [stopped.id] });
+  });
 
   await check("indicator goes away after a minute without commands and returns with the next one", async () => {
     const url = `${origin}/second?idle`;

@@ -1,5 +1,6 @@
 import { CLIENT_ID_PARAM, CLIENT_PARAM } from "@ubc/shared/protocol";
-import { attachedTabs, detachAll, whileRunning } from "./cdp";
+import { blockedTabs, unblockAll } from "./blocked";
+import { attachedTabs, detachAll, stopControl, whileRunning } from "./cdp";
 import { connect, getSettings, isConnected, startConnection } from "./connection";
 import type { Handler } from "./handlers/common";
 import { dataHandlers } from "./handlers/data";
@@ -16,16 +17,21 @@ startConnection((method, params, client, clientId) => {
   return whileRunning(() => handler({ ...params, [CLIENT_PARAM]: client, [CLIENT_ID_PARAM]: clientId }));
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+const describeTabs = async (ids: number[]) =>
+  (await Promise.all(ids.map((id) => chrome.tabs.get(id).catch(() => undefined)))).filter((tab) => !!tab).map((tab) => ({ id: tab.id, title: tab.title }));
+
+chrome.runtime.onMessage.addListener((message, sender, respond) => {
   (async () => {
+    if (message.type === "stopControl" && sender.tab?.id !== undefined) await stopControl(sender.tab.id, { x: message.x, y: message.y });
+    if (message.type === "unblockAll") await unblockAll();
     if (message.type === "detachAll") await detachAll();
     if (message.type === "connect") await connect();
     const settings = await getSettings();
-    const tabs = await Promise.all(attachedTabs().map((id) => chrome.tabs.get(id).catch(() => undefined)));
     respond({
       connected: isConnected(),
       settings,
-      attached: tabs.filter((tab) => !!tab).map((tab) => ({ id: tab.id, title: tab.title })),
+      attached: await describeTabs(attachedTabs()),
+      blocked: await describeTabs(await blockedTabs()),
     });
   })();
   return true;

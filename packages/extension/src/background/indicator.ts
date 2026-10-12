@@ -59,7 +59,7 @@ function mountIndicator(attribute: string, controller: string, zoom: number, bac
       const root = host.attachShadow({ mode: "closed" });
       root.innerHTML = `
         <style>
-          .frame { position: absolute; inset: 0; box-shadow: inset 0 0 0 3px var(--ubc-color), inset 0 0 18px 2px color-mix(in srgb, var(--ubc-color) 45%, transparent); animation: pulse 2.4s ease-in-out infinite; }
+          .frame { position: absolute; inset: 0; box-shadow: inset 0 0 0 5px var(--ubc-color), inset 0 0 32px 4px color-mix(in srgb, var(--ubc-color) 55%, transparent); animation: pulse 2.4s ease-in-out infinite; }
           .banner { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
             padding: 5px 14px 6px; border-radius: 0 0 10px 10px; background: var(--ubc-color); color: var(--ubc-text); white-space: nowrap;
             font: 500 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
